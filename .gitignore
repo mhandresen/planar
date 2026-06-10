@@ -7,4 +7,5 @@ coverage/
 *.tfplan
 *.tfstate
 *.tfstate.*
-.terraform/
+.terraform
+*.svg
