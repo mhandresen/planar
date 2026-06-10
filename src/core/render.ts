@@ -1,103 +1,123 @@
 import { isContainer, type Container } from "./group.js";
-import type { Status } from "./parse.js";
+import type { Badge } from "./demote.js";
+import { categoryOf } from "./category.js";
+import { icon } from "./icons.js";
+import { themes, type Theme, type ThemeName } from "./theme.js";
 import type { LayoutResult, PositionedNode } from "./layout.js";
 
 const SANS = "ui-sans-serif, -apple-system, 'Segoe UI', Roboto, sans-serif";
 const MONO = "ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace";
+const LEGEND_HEIGHT = 46;
 
-const CANVAS = "#f6f7f9";
-const INK = "#0f172a";
-const MUTED = "#64748b";
-
-type Category = "network" | "compute" | "storage" | "database" | "security" | "other";
-
-const CATEGORY_COLOR: Record<Category, string> = {
-  network: "#0891b2",
-  compute: "#7c3aed",
-  storage: "#0d9488",
-  database: "#4f46e5",
-  security: "#475569",
-  other: "#94a3b8",
-};
-
-const STATUS_COLOR: Record<Status, string> = {
-  create: "#16a34a",
-  update: "#d97706",
-  replace: "#d97706",
-  delete: "#dc2626",
-  noop: "#94a3b8",
-};
-
-const CATEGORY_BY_TYPE: Record<string, Category> = {
-  aws_vpc: "network",
-  aws_subnet: "network",
-  aws_nat_gateway: "network",
-  aws_internet_gateway: "network",
-  aws_route_table: "network",
-  aws_eip: "network",
-  aws_lb: "network",
-  aws_instance: "compute",
-  aws_s3_bucket: "storage",
-  aws_db_instance: "database",
-  aws_security_group: "security",
-};
-
-const categoryOf = (type: string): Category => CATEGORY_BY_TYPE[type] ?? "other";
-
-export function renderSvg(result: LayoutResult): string {
+export function renderSvg(
+  result: LayoutResult,
+  badges: Map<string, Badge[]> = new Map(),
+  theme: ThemeName = "light",
+): string {
+  const t = themes[theme];
+  if (result.nodes.length === 0) return emptySvg(t);
+  const height = result.height + LEGEND_HEIGHT;
   return [
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${result.width}" height="${result.height}"`,
-    ` viewBox="0 0 ${result.width} ${result.height}" font-family="${SANS}">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${result.width}" height="${height}"`,
+    ` viewBox="0 0 ${result.width} ${height}" font-family="${SANS}">`,
     `<defs><filter id="card" x="-20%" y="-20%" width="140%" height="140%">`,
-    `<feDropShadow dx="0" dy="1" stdDeviation="2.5" flood-color="#0f172a" flood-opacity="0.10"/>`,
+    `<feDropShadow dx="0" dy="1" stdDeviation="2.5" flood-color="${t.shadow}" flood-opacity="0.10"/>`,
     `</filter></defs>`,
-    `<rect width="${result.width}" height="${result.height}" fill="${CANVAS}"/>`,
-    result.nodes.map(renderNode).join(""),
+    `<rect width="${result.width}" height="${height}" fill="${t.canvas}"/>`,
+    result.nodes.map((n) => renderNode(n, badges, t)).join(""),
+    legend(result.width, result.height, badges.size > 0, t),
     `</svg>`,
   ].join("");
 }
 
-function renderNode(n: PositionedNode): string {
-  const inner = isContainer(n.node) ? n.children.map(renderNode).join("") : "";
-  return `<g transform="translate(${n.x},${n.y})">${chrome(n)}${inner}</g>`;
+function emptySvg(t: Theme): string {
+  const w = 380;
+  const h = 132;
+  return [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" font-family="${SANS}">`,
+    `<rect width="${w}" height="${h}" fill="${t.canvas}"/>`,
+    `<rect x="24" y="32" width="${w - 48}" height="${h - 64}" rx="12" fill="${t.cardFill}" stroke="${t.cardStroke}"/>`,
+    `<text x="${w / 2}" y="${h / 2 + 4}" text-anchor="middle" font-size="13" font-weight="600" fill="${t.muted}">No resources to display</text>`,
+    `</svg>`,
+  ].join("");
 }
 
-function chrome(n: PositionedNode): string {
-  if (!isContainer(n.node)) return leaf(n);
-  return n.node.containerType === "module" ? modulePanel(n, n.node) : containerCard(n, n.node);
+function legend(width: number, top: number, secured: boolean, t: Theme): string {
+  const baseline = top + 28;
+  const swatch = (x: number, color: string, label: string) =>
+    `<rect x="${x}" y="${baseline - 12}" width="4" height="11" rx="2" fill="${color}"/>` +
+    text(x + 12, baseline - 3, label, 11, 600, t.muted, SANS, "start");
+
+  const parts = [
+    `<line x1="24" y1="${top + 8}" x2="${width - 24}" y2="${top + 8}" stroke="${t.divider}"/>`,
+    swatch(24, t.status.create, "Create"),
+    swatch(112, t.status.update, "Update / Replace"),
+    swatch(252, t.status.delete, "Delete"),
+  ];
+  if (secured) {
+    parts.push(shield(344, baseline - 16, t.shield));
+    parts.push(text(364, baseline - 3, "Firewalled", 11, 600, t.muted, SANS, "start"));
+  }
+  return parts.join("");
 }
 
-function modulePanel(n: PositionedNode, node: Container): string {
+function renderNode(n: PositionedNode, badges: Map<string, Badge[]>, t: Theme): string {
+  const inner = isContainer(n.node) ? n.children.map((c) => renderNode(c, badges, t)).join("") : "";
+  return `<g transform="translate(${n.x},${n.y})">${chrome(n, badges, t)}${inner}</g>`;
+}
+
+function chrome(n: PositionedNode, badges: Map<string, Badge[]>, t: Theme): string {
+  if (!isContainer(n.node)) return leaf(n, badges, t);
+  return n.node.containerType === "module" ? modulePanel(n, n.node, t) : containerCard(n, n.node, badges, t);
+}
+
+function modulePanel(n: PositionedNode, node: Container, t: Theme): string {
   return (
-    `<rect width="${n.width}" height="${n.height}" rx="14" fill="#eef1f5" stroke="#dbe1ea"/>` +
-    text(20, 27, node.label.toUpperCase(), 11, 700, MUTED, SANS, "start", 1.2)
+    `<rect width="${n.width}" height="${n.height}" rx="14" fill="${t.moduleFill}" stroke="${t.moduleStroke}"/>` +
+    text(20, 27, node.label.toUpperCase(), 11, 700, t.muted, SANS, "start", 1.2)
   );
 }
 
-function containerCard(n: PositionedNode, node: Container): string {
+function containerCard(n: PositionedNode, node: Container, badges: Map<string, Badge[]>, t: Theme): string {
   const r = node.resource!;
-  const accent = CATEGORY_COLOR[categoryOf(r.type)];
+  const accent = t.category[categoryOf(r.type)];
+  const secured = isSecured(r.id, badges);
   return (
-    `<rect width="${n.width}" height="${n.height}" rx="12" fill="#ffffff" stroke="#e2e8f0" filter="url(#card)"/>` +
-    `<path d="M0 12 Q0 0 12 0 H${n.width - 12} Q${n.width} 0 ${n.width} 12 V42 H0 Z" fill="${accent}" fill-opacity="0.07"/>` +
-    rail(14, 26, STATUS_COLOR[r.status]) +
-    `<circle cx="26" cy="21" r="4" fill="${accent}"/>` +
-    text(38, 25, r.name, 13, 650, INK, SANS, "start") +
-    text(n.width - 16, 25, r.type, 11, 500, MUTED, MONO, "end")
+    `<rect width="${n.width}" height="${n.height}" rx="12" fill="${t.cardFill}" stroke="${t.cardStroke}" filter="url(#card)"/>` +
+    `<path d="M0 12 Q0 0 12 0 H${n.width - 12} Q${n.width} 0 ${n.width} 12 V42 H0 Z" fill="${accent}" fill-opacity="${t.tintOpacity}"/>` +
+    rail(11, 20, t.status[r.status]) +
+    icon(r.type, accent, 16, 21, 22) +
+    text(42, 25, r.name, 13, 650, t.ink, SANS, "start") +
+    text(secured ? n.width - 34 : n.width - 16, 25, r.type, 11, 500, t.muted, MONO, "end") +
+    (secured ? shield(n.width - 27, 11, t.shield) : "")
   );
 }
 
-function leaf(n: PositionedNode): string {
+function leaf(n: PositionedNode, badges: Map<string, Badge[]>, t: Theme): string {
   if (isContainer(n.node)) return "";
-  const { type, name, status } = n.node;
-  const accent = CATEGORY_COLOR[categoryOf(type)];
+  const { type, name, status, id } = n.node;
+  const accent = t.category[categoryOf(type)];
+  const secured = isSecured(id, badges);
   return (
-    `<rect width="${n.width}" height="${n.height}" rx="12" fill="#ffffff" stroke="#e2e8f0" filter="url(#card)"/>` +
-    rail(14, n.height - 28, STATUS_COLOR[status]) +
-    `<circle cx="26" cy="25" r="4" fill="${accent}"/>` +
-    text(38, 29, name, 14, 650, INK, SANS, "start") +
-    text(26, 49, type, 11, 500, MUTED, MONO, "start") +
-    text(n.width - 16, 29, status.toUpperCase(), 10, 700, STATUS_COLOR[status], SANS, "end", 0.6)
+    `<rect width="${n.width}" height="${n.height}" rx="12" fill="${t.cardFill}" stroke="${t.cardStroke}" filter="url(#card)"/>` +
+    rail(14, n.height - 28, t.status[status]) +
+    icon(type, accent, 14, n.height / 2, 24) +
+    text(46, 29, name, 14, 650, t.ink, SANS, "start") +
+    text(46, 48, type, 11, 500, t.muted, MONO, "start") +
+    text(secured ? n.width - 34 : n.width - 16, 29, status.toUpperCase(), 10, 700, t.status[status], SANS, "end", 0.6) +
+    (secured ? shield(n.width - 27, 17, t.shield) : "")
+  );
+}
+
+function isSecured(id: string, badges: Map<string, Badge[]>): boolean {
+  return (badges.get(id) ?? []).includes("security");
+}
+
+function shield(x: number, y: number, color: string): string {
+  return (
+    `<g transform="translate(${x},${y})">` +
+    `<path d="M7 0 L13 2.5 V7 Q13 11.5 7 14 Q1 11.5 1 7 V2.5 Z" fill="${color}" fill-opacity="0.14" stroke="${color}" stroke-width="1"/>` +
+    `</g>`
   );
 }
 
