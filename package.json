@@ -1,0 +1,40 @@
+{
+  "name": "@mhandresen/planar",
+  "version": "0.0.1",
+  "description": "Living architecture diagrams from your Terraform plans - beautiful infra diffs, straight into your PRs.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Martin Hellebostad Andresen (https://github.com/mhandresen)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mhandresen/planar.git"
+  },
+  "keywords": [
+    "terraform",
+    "infrastructure",
+    "diagram",
+    "iac",
+    "github-action",
+    "visualization"
+  ],
+  "bin": {
+    "planar": "./dist/cli.js"
+  },
+  "scripts": {
+    "cli": "tsx src/cli.ts",
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:types": "vitest --typecheck --run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  },
+  "dependencies": {
+    "fs": "0.0.1-security"
+  }
+}
