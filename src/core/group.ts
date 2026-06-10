@@ -59,7 +59,7 @@ export const CONTAINMENT: Record<Provider, Record<string, string[]>> = {
  * Build the module/resource hierarchy from the flat abstracted IR.
  * Module order and resource order within a module both follow plan order.
  */
-export function groupNodes(nodes: ResourceNode[]): Container[] {
+export function groupNodes(nodes: ResourceNode[], refs?: Map<string, string[]>): Container[] {
   const moduleOrder: string[] = [];
   const byModule = new Map<string, ResourceNode[]>();
 
@@ -78,18 +78,18 @@ export function groupNodes(nodes: ResourceNode[]): Container[] {
     id: module,
     label: module,
     containerType: "module" as const,
-    children: buildTopology(byModule.get(module) ?? []),
+    children: buildTopology(byModule.get(module) ?? [], refs),
   }))
 }
 
 
 // Containment never crosses a module boundary.
-function buildTopology(resources: ResourceNode[]): TreeNode[] {
+function buildTopology(resources: ResourceNode[], refs?: Map<string, string[]>): TreeNode[] {
   const parentOf = new Map<string, string>();
   const childrenOf = new Map<string, ResourceNode[]>();
 
   for (const node of resources) {
-    const parent = findParent(node, resources);
+    const parent = findParent(node, resources, refs);
     if (parent) {
       parentOf.set(node.id, parent.id);
       const kids = childrenOf.get(parent.id) ?? [];
@@ -114,8 +114,61 @@ function toTree(node: ResourceNode, childrenOf: Map<string, ResourceNode[]>): Tr
   }
 }
 
-// First matching rule wins; ties broken by plan order.
-function findParent(node: ResourceNode, pool: ResourceNode[]): ResourceNode | undefined {
+/**
+ * Structural container types and how specific they are (subnet sits inside vpc).
+ * A referenced resource of one of these types is a real containment parent.
+ */
+const STRUCTURAL_SPECIFICITY: Record<string, number> = {
+  aws_vpc: 1,
+  aws_subnet: 2,
+  azurerm_virtual_network: 1,
+  azurerm_subnet: 2,
+  google_compute_network: 1,
+  google_compute_subnetwork: 2,
+};
+
+/**
+ * Prefer a parent derived from real references; fall back to the type heuristic when
+ * the plan has no config block or a node references nothing structural (e.g. RDS,
+ * whose subnet link is indirect). References give precision, heuristics give coverage.
+ */
+function findParent(
+  node: ResourceNode,
+  pool: ResourceNode[],
+  refs?: Map<string, string[]>,
+): ResourceNode | undefined {
+  if (refs) {
+    const byReference = referenceParent(node, pool, refs);
+    if (byReference) return byReference;
+  }
+  return heuristicParent(node, pool);
+}
+
+function referenceParent(
+  node: ResourceNode,
+  pool: ResourceNode[],
+  refs: Map<string, string[]>,
+): ResourceNode | undefined {
+  let best: ResourceNode | undefined;
+  let bestScore = 0;
+  for (const target of refs.get(node.id) ?? []) {
+    const candidate = pool.find((c) => c.id === target && c.id !== node.id);
+    const score = candidate ? (STRUCTURAL_SPECIFICITY[candidate.type] ?? 0) : 0;
+    if (candidate && score > bestScore) {
+      best = candidate;
+      bestScore = score;
+    }
+  }
+  return best;
+}
+
+/**
+ * Find the parent for a node among same-module, same-provider candidates using
+ * the provider's containment rules. The highest-priority parent type that has at
+ * least one candidate wins; among candidates of that type we take the first in
+ * plan order (the approximate part — see CONTAINMENT).
+ */
+function heuristicParent(node: ResourceNode, pool: ResourceNode[]): ResourceNode | undefined {
   const rules = CONTAINMENT[node.provider][node.type];
   if (!rules) return undefined;
   for (const parentType of rules) {

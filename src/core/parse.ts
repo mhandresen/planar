@@ -52,3 +52,38 @@ export function parsePlan(plan: TerraformPlan): ResourceNode[] {
     .filter((rc) => rc.mode === "managed")
     .map(toNode);
 }
+
+/**
+ * Build an address -> referenced-addresses map from the plan's configuration block.
+ * References arrive as expression operands (e.g. "aws_vpc.main.id"); we trim trailing
+ * segments until they match a real resource address. Root module only for now.
+ */
+export function buildReferenceMap(plan: TerraformPlan): Map<string, string[]> {
+  const known = new Set(
+    (plan.resource_changes ?? []).filter((rc) => rc.mode === "managed").map((rc) => rc.address),
+  );
+
+  const map = new Map<string, string[]>();
+  for (const res of plan.configuration?.root_module?.resources ?? []) {
+    const targets = new Set<string>();
+    for (const expr of Object.values(res.expressions ?? {})) {
+      for (const ref of expr.references ?? []) {
+        const addr = resolveReference(ref, known);
+        if (addr && addr !== res.address) targets.add(addr);
+      }
+    }
+    map.set(res.address, [...targets]);
+  }
+  return map;
+}
+
+function resolveReference(ref: string, known: Set<string>): string | undefined {
+  let candidate = ref;
+  while (candidate.length > 0) {
+    if (known.has(candidate)) return candidate;
+    const dot = candidate.lastIndexOf(".");
+    if (dot < 0) return undefined;
+    candidate = candidate.slice(0, dot);
+  }
+  return undefined;
+}

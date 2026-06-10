@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      elkjs:
+        specifier: ^0.11.1
+        version: 0.11.1
       fs:
         specifier: 0.0.1-security
         version: 0.0.1-security
@@ -516,6 +519,9 @@ packages:
   detect-libc@2.1.2:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
+
+  elkjs@0.11.1:
+    resolution: {integrity: sha512-zxxR9k+rx5ktMwT/FwyLdPCrq7xN6e4VGGHH8hA01vVYKjTFik7nHOxBnAYtrgYUB1RpAiLvA1/U2YraWxyKKg==}
 
   es-module-lexer@1.7.0:
     resolution: {integrity: sha512-jEQoCwk8hyb2AZziIOLhDqpm5+2ww5uIE6lkO/6jcOCusfk6LhMHpXXfBLXTZ7Ydyt0j4VoUQv6uGNYbdW+kBA==}
@@ -1052,6 +1058,8 @@ snapshots:
 
   detect-libc@2.1.2:
     optional: true
+
+  elkjs@0.11.1: {}
 
   es-module-lexer@1.7.0: {}
 

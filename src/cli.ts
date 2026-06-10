@@ -1,8 +1,10 @@
 #!/usr/bin/env node
-import { readFileSync } from "node:fs";
-import { parsePlan } from "./core/parse.js";
+import { readFileSync, writeFileSync } from "node:fs";
+import { parsePlan, buildReferenceMap } from "./core/parse.js";
 import { abstractNodes } from "./core/abstract.js";
 import { countResources, groupNodes, isContainer, type TreeNode } from "./core/group.js";
+import { layout } from "./core/layout.js";
+import { renderSvg } from "./core/render.js";
 import type { TerraformPlan } from "./core/plan.js";
 
 const SYMBOL: Record<string, string> = {
@@ -13,16 +15,13 @@ const SYMBOL: Record<string, string> = {
   noop: " ",
 };
 
-/** Print one tree node and its descendants, indented by depth. */
 function printNode(node: TreeNode, depth: number): void {
-  // Module containers are the un-indented bracketed headers.
   if (isContainer(node) && node.containerType === "module") {
     console.log(`[${node.label}]`);
     for (const child of node.children) printNode(child, depth + 1);
     return;
   }
 
-  // Resource containers and leaf resources both render from a backing resource.
   const resource = isContainer(node) ? node.resource! : node;
   const indent = "  ".repeat(depth);
   console.log(
@@ -34,10 +33,10 @@ function printNode(node: TreeNode, depth: number): void {
   }
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const file = process.argv[2];
   if (!file) {
-    console.error("usage: planar <plan.json>");
+    console.error("usage: planar <plan.json> [out.svg]");
     console.error("  produce with: terraform show -json tfplan.bin > plan.json");
     process.exit(1);
   }
@@ -50,10 +49,16 @@ function main(): void {
     process.exit(1);
   }
 
-  const tree = groupNodes(abstractNodes(parsePlan(plan)));
-  const total = countResources(tree);
+  const tree = groupNodes(abstractNodes(parsePlan(plan)), buildReferenceMap(plan));
 
-  console.log(`planar: ${total} resource(s) across ${tree.length} group(s)\n`);
+  const out = process.argv[3];
+  if (out) {
+    writeFileSync(out, renderSvg(await layout(tree)));
+    console.log(`planar: wrote ${countResources(tree)} resource(s) to ${out}`);
+    return;
+  }
+
+  console.log(`planar: ${countResources(tree)} resource(s) across ${tree.length} group(s)\n`);
   for (const moduleContainer of tree) {
     printNode(moduleContainer, 0);
     console.log();

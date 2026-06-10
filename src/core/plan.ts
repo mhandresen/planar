@@ -35,9 +35,25 @@ export interface ResourceChange {
   change: Change;
 }
 
+export interface Expression {
+  /** Resource addresses this expression points at, e.g. ["aws_vpc.main.id", "aws_vpc.main"]. */
+  references?: string[];
+}
+
+export interface ConfigResource {
+  address: string;
+  expressions?: Record<string, Expression>;
+}
+
+export interface Configuration {
+  root_module?: { resources?: ConfigResource[] };
+}
+
 export interface TerraformPlan {
   format_version: string;
   terraform_version: string;
   /** Absent when the plan has no resource changes. */
-  resource_changes: ResourceChange[];
+  resource_changes?: ResourceChange[];
+  /** The resolved config graph. Absent on older/minimal plans; we degrade to heuristics. */
+  configuration?: Configuration;
 }
