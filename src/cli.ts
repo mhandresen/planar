@@ -2,6 +2,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { parsePlan, buildReferenceMap } from "./core/parse.js";
 import { abstractNodes } from "./core/abstract.js";
+import { demote } from "./core/demote.js";
 import { countResources, groupNodes, isContainer, type TreeNode } from "./core/group.js";
 import { layout } from "./core/layout.js";
 import { renderSvg } from "./core/render.js";
@@ -34,9 +35,11 @@ function printNode(node: TreeNode, depth: number): void {
 }
 
 async function main(): Promise<void> {
-  const file = process.argv[2];
+  const args = process.argv.slice(2);
+  const theme = args.includes("--dark") ? "dark" : "light";
+  const [file, out] = args.filter((a) => !a.startsWith("--"));
   if (!file) {
-    console.error("usage: planar <plan.json> [out.svg]");
+    console.error("usage: planar <plan.json> [out.svg] [--dark]");
     console.error("  produce with: terraform show -json tfplan.bin > plan.json");
     process.exit(1);
   }
@@ -49,11 +52,12 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const tree = groupNodes(abstractNodes(parsePlan(plan)), buildReferenceMap(plan));
+  const refs = buildReferenceMap(plan);
+  const { nodes, badges } = demote(abstractNodes(parsePlan(plan)), refs);
+  const tree = groupNodes(nodes, refs);
 
-  const out = process.argv[3];
   if (out) {
-    writeFileSync(out, renderSvg(await layout(tree)));
+    writeFileSync(out, renderSvg(await layout(tree), badges, theme));
     console.log(`planar: wrote ${countResources(tree)} resource(s) to ${out}`);
     return;
   }
