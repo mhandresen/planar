@@ -73,7 +73,6 @@ planar: 7 resource(s) across 2 group(s)
 
 **Before launch**
 
-- **Long-label truncation.** Cards are fixed-width, so a long resource name or a deeply nested `module.x.module.y.type.name` address can overflow. Needs ellipsis truncation by per-card character budget — worth fixing before M3, since the Action feeds Planar real (messy) PR plans.
 - **Before/after screenshot.** A side-by-side against `terraform graph` is the launch signal and still needs assembling — ideally rendered from a real cloud plan, not just the bundled fixtures, to confirm it holds up on messy input.
 
 **Post-launch**

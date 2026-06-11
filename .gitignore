@@ -8,4 +8,4 @@ coverage/
 *.tfstate
 *.tfstate.*
 .terraform
-*.svg
+out.svg

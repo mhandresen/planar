@@ -74,7 +74,7 @@ function chrome(n: PositionedNode, badges: Map<string, Badge[]>, t: Theme): stri
 function modulePanel(n: PositionedNode, node: Container, t: Theme): string {
   return (
     `<rect width="${n.width}" height="${n.height}" rx="14" fill="${t.moduleFill}" stroke="${t.moduleStroke}"/>` +
-    text(20, 27, node.label.toUpperCase(), 11, 700, t.muted, SANS, "start", 1.2)
+    text(20, 27, fit(node.label.toUpperCase(), n.width - 40, 11, true), 11, 700, t.muted, SANS, "start", 1.2)
   );
 }
 
@@ -82,13 +82,15 @@ function containerCard(n: PositionedNode, node: Container, badges: Map<string, B
   const r = node.resource!;
   const accent = t.category[categoryOf(r.type)];
   const secured = isSecured(r.id, badges);
+  const typeAnchor = secured ? n.width - 34 : n.width - 16;
+  const nameMax = typeAnchor - estWidth(r.type, 11, true) - 8 - 42;
   return (
     `<rect width="${n.width}" height="${n.height}" rx="12" fill="${t.cardFill}" stroke="${t.cardStroke}" filter="url(#card)"/>` +
     `<path d="M0 12 Q0 0 12 0 H${n.width - 12} Q${n.width} 0 ${n.width} 12 V42 H0 Z" fill="${accent}" fill-opacity="${t.tintOpacity}"/>` +
     rail(11, 20, t.status[r.status]) +
     icon(r.type, accent, 16, 21, 22) +
-    text(42, 25, r.name, 13, 650, t.ink, SANS, "start") +
-    text(secured ? n.width - 34 : n.width - 16, 25, r.type, 11, 500, t.muted, MONO, "end") +
+    text(42, 25, fit(r.name, nameMax, 13, false), 13, 650, t.ink, SANS, "start") +
+    text(typeAnchor, 25, r.type, 11, 500, t.muted, MONO, "end") +
     (secured ? shield(n.width - 27, 11, t.shield) : "")
   );
 }
@@ -98,13 +100,16 @@ function leaf(n: PositionedNode, badges: Map<string, Badge[]>, t: Theme): string
   const { type, name, status, id } = n.node;
   const accent = t.category[categoryOf(type)];
   const secured = isSecured(id, badges);
+  const statusLabel = status.toUpperCase();
+  const statusAnchor = secured ? n.width - 34 : n.width - 16;
+  const nameMax = statusAnchor - estWidth(statusLabel, 10, false) - 8 - 46;
   return (
     `<rect width="${n.width}" height="${n.height}" rx="12" fill="${t.cardFill}" stroke="${t.cardStroke}" filter="url(#card)"/>` +
     rail(14, n.height - 28, t.status[status]) +
     icon(type, accent, 14, n.height / 2, 24) +
-    text(46, 29, name, 14, 650, t.ink, SANS, "start") +
-    text(46, 48, type, 11, 500, t.muted, MONO, "start") +
-    text(secured ? n.width - 34 : n.width - 16, 29, status.toUpperCase(), 10, 700, t.status[status], SANS, "end", 0.6) +
+    text(46, 29, fit(name, nameMax, 14, false), 14, 650, t.ink, SANS, "start") +
+    text(46, 48, fit(type, n.width - 16 - 46, 11, true), 11, 500, t.muted, MONO, "start") +
+    text(statusAnchor, 29, statusLabel, 10, 700, t.status[status], SANS, "end", 0.6) +
     (secured ? shield(n.width - 27, 17, t.shield) : "")
   );
 }
@@ -140,6 +145,16 @@ function text(
     `<text x="${x}" y="${y}" font-size="${size}" font-weight="${weight}" fill="${fill}"` +
     ` font-family="${family}" text-anchor="${anchor}" letter-spacing="${tracking}">${esc(value)}</text>`
   );
+}
+
+function estWidth(s: string, size: number, mono: boolean): number {
+  return s.length * size * (mono ? 0.62 : 0.6);
+}
+
+function fit(s: string, maxWidth: number, size: number, mono: boolean): string {
+  if (estWidth(s, size, mono) <= maxWidth) return s;
+  const budget = Math.max(1, Math.floor(maxWidth / (size * (mono ? 0.62 : 0.6))) - 1);
+  return s.slice(0, budget) + "\u2026";
 }
 
 function esc(s: string): string {
