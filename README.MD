@@ -6,9 +6,7 @@ Planar turns the output of `terraform plan` into clean, grouped, executive-ready
 
 > Status: pre-release. The engine is complete — parsing, logical grouping, ELK layout, and themed SVG rendering (light/dark) all work end to end. The GitHub Action (M3) is next.
 
-<!-- Launch hero image goes here once committed:
 ![A Planar diagram](docs/example.svg)
--->
 
 ## Why plan JSON, not `.tf`
 
