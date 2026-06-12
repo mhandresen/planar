@@ -6,7 +6,15 @@ Planar turns the output of `terraform plan` into clean, grouped, executive-ready
 
 > Status: pre-release. The engine is complete — parsing, logical grouping, ELK layout, and themed SVG rendering (light/dark) all work end to end. The GitHub Action (M3) is next.
 
-![A Planar diagram](docs/example.svg)
+## See it
+
+**Before** — `terraform graph | dot` on a real plan:
+
+![terraform graph output](docs/examples/before.png)
+
+**After** — the same plan, drawn by Planar:
+
+![Planar, dark mode](docs/examples/after.svg)
 
 ## Why plan JSON, not `.tf`
 
@@ -22,6 +30,7 @@ Planar reads the resolved plan (`terraform show -json`), not raw HCL. That's the
 - **Provider-general.** Pipeline works across providers; AWS coverage is deepest, with Azure and GCP riding the shared category layer.
 - **Shows the diff.** Green create, orange update/replace, red delete, with a baked-in legend.
 - **Light and dark themes.**
+
 
 ## Quickstart
 

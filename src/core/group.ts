@@ -39,7 +39,6 @@ export const CONTAINMENT: Record<Provider, Record<string, string[]>> = {
     aws_internet_gateway: ["aws_vpc"],
     aws_route_table: ["aws_vpc"],
     aws_lb: ["aws_subnet", "aws_vpc"],
-    aws_eip: ["aws_subnet", "aws_vpc"],
   },
   azure: {
     azurerm_subnet: ["azurerm_virtual_network"],
