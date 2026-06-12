@@ -7,6 +7,7 @@ import { countResources, groupNodes, isContainer, type TreeNode } from "./core/g
 import { layout } from "./core/layout.js";
 import { renderSvg } from "./core/render.js";
 import type { TerraformPlan } from "./core/plan.js";
+import { planToSvg } from "./core/pipeline.js";
 
 const SYMBOL: Record<string, string> = {
   create: "+",
@@ -52,15 +53,15 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const refs = buildReferenceMap(plan);
-  const { nodes, badges } = demote(abstractNodes(parsePlan(plan)), refs);
-  const tree = groupNodes(nodes, refs);
-
   if (out) {
-    writeFileSync(out, renderSvg(await layout(tree), badges, theme));
-    console.log(`planar: wrote ${countResources(tree)} resource(s) to ${out}`);
+    const { svg, count } = await planToSvg(plan, theme);
+    writeFileSync(out, svg);
+    console.log(`planar: wrote ${count} resource(s) to ${out}`);
     return;
   }
+  const refs = buildReferenceMap(plan);
+  const { nodes } = demote(abstractNodes(parsePlan(plan)), refs);
+  const tree = groupNodes(nodes, refs);
 
   console.log(`planar: ${countResources(tree)} resource(s) across ${tree.length} group(s)\n`);
   for (const moduleContainer of tree) {

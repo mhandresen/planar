@@ -1,0 +1,34 @@
+name: "Planar"
+description: "Render a Terraform plan into a grouped architecture diagram and keep it committed."
+author: "Martin Hellebostad Andresen"
+branding:
+  icon: "git-branch"
+  color: "green"
+inputs:
+  plan:
+    description: "Path to a `terraform show -json` plan document."
+    required: true
+  output:
+    description: "Where to write the SVG, relative to the repository root."
+    required: false
+    default: ".planar/diagram.svg"
+  theme:
+    description: "Diagram theme: light or dark."
+    required: false
+    default: "light"
+  commit-message:
+    description: "Commit message used when updating the diagram on the default branch"
+    required: false
+    default: "chore: update Planar diagram"
+  token:
+    description: "Token used to commit the diagram. Defaults to the workflow token."
+    required: false
+    default: ${{ github.token }}
+outputs:
+  svg-path:
+    description: "Path to the rendered SVG."
+  resource-count:
+    description: "Number of resources drawn in the diagram."
+runs:
+  using: "node20"
+  main: "dist/index.js"
