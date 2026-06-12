@@ -135,6 +135,13 @@ On a pull request, Planar renders the diagram, hosts it on a `planar-bot` branch
 and posts (or updates) a single sticky comment with the diff. Public repositories
 only — pull requests from forks get a read-only token and are skipped.
 
+### Why is `dist/` committed?
+
+GitHub Actions run the bundled file directly with no install step, so the
+compiled Action (`dist/index.js` plus its wasm and font assets) is committed
+on purpose. It's regenerated with `pnpm run bundle`, and CI fails if it drifts
+out of sync with `src/`.
+
 ## Roadmap
 
 - [x] **M1** — Parse `terraform show -json` into a typed IR; prune plumbing; normalize status (incl. replace).
