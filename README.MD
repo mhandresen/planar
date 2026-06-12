@@ -69,6 +69,53 @@ planar: 7 resource(s) across 2 group(s)
   + create  aws_nat_gateway.main  (aws)
 ```
 
+## Use it as a GitHub Action
+
+Run Planar in CI to keep an architecture diagram of your infrastructure committed to your repo, updated on every merge to your default branch:
+
+```yaml
+name: Architecture diagram
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write   # Planar commits the diagram back to the repo
+
+jobs:
+  diagram:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+
+      # Authenticate to your cloud as you normally would in CI
+      # (e.g. aws-actions/configure-aws-credentials via OIDC), then:
+      - run: terraform init
+      - run: terraform plan -out tfplan.bin
+      - run: terraform show -json tfplan.bin > plan.json
+
+      - uses: mhandresen/planar@v1
+        with:
+          plan: plan.json
+          output: .planar/diagram.svg
+          theme: light
+```
+
+> **Note:** `permissions: contents: write` is required — without it, the commit step fails with a 403.
+
+### Inputs
+
+| Input | Default | Description |
+|---|---|---|
+| `plan` | _(required)_ | Path to a `terraform show -json` plan document. |
+| `output` | `.planar/diagram.svg` | Where to write the SVG, relative to the repository root. |
+| `theme` | `light` | Diagram theme: `light` or `dark`. |
+| `commit-message` | `chore: update Planar diagram` | Message used when the diagram changes on the default branch. |
+| `token` | `${{ github.token }}` | Token used to commit the diagram. |
+
+On a push to your default branch, Planar renders the diagram and commits it (only when it has changed). On other events it writes the SVG without committing — posting the diff to pull requests is on the roadmap.
+
 ## Roadmap
 
 - [x] **M1** — Parse `terraform show -json` into a typed IR; prune plumbing; normalize status (incl. replace).
