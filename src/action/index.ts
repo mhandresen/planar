@@ -2,47 +2,92 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as core from "@actions/core";
 import * as github from "@actions/github";
-import { planToSvg } from "../core/pipeline.js";
+import { planToSvg, type RenderResult } from "../core/pipeline.js";
 import type { TerraformPlan } from "../core/plan.js";
 import type { ThemeName } from "../core/theme.js";
+
+const MARKER = "<!-- planar-bot -->";
 
 async function run(): Promise<void> {
   try {
     const planPath = core.getInput("plan", { required: true });
     const outputPath = core.getInput("output") || ".planar/diagram.svg";
     const theme: ThemeName = core.getInput("theme") === "dark" ? "dark" : "light";
-    const message = core.getInput("commit-message") || "chore: updated Planar diagram";
+    const message = core.getInput("commit-message") || "chore: update Planar diagram";
     const token = core.getInput("token") || process.env.GITHUB_TOKEN;
 
     const plan = JSON.parse(fs.readFileSync(planPath, "utf8")) as TerraformPlan;
-    const { svg, count } = await planToSvg(plan, theme);
-    core.info(`planar, rendered ${count} resource(s)`);
+    const result = await planToSvg(plan, theme);
+    core.info(`planar: rendered ${result.count} resource(s)`);
 
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-    fs.writeFileSync(outputPath, svg);
+    fs.writeFileSync(outputPath, result.svg);
     core.setOutput("svg-path", outputPath);
-    core.setOutput("resource-count", String(count));
-
-    const ctx = github.context;
-    const defaultBranch = ctx.payload.repository?.default_branch;
-    const onDefaultBranch = ctx.eventName === "push" && ctx.ref === `refs/heads/${defaultBranch}`;
-
-    if (!onDefaultBranch) {
-      core.info("planar: not a push to the default branch - wrote the SVG, skipping commit");
-      return;
-    }
+    core.setOutput("resource-count", String(result.count));
 
     if (!token) {
-      core.warning("planar: no token available - cannot commit the diagram");
+      core.warning("planar: no token available — wrote the SVG, skipping repo updates");
       return;
     }
 
-    await commitFile(token, outputPath, svg, message);
+    const ctx = github.context;
+    if (ctx.eventName === "pull_request") {
+      await commentOnPullRequest(token, result);
+    } else if (isPushToDefaultBranch(ctx)) {
+      await commitFile(token, outputPath, result.svg, message);
+    } else {
+      core.info("planar: not a pull request or default-branch push — wrote the SVG, nothing else to do");
+    }
   } catch (err) {
     core.setFailed(err instanceof Error ? err.message : String(err));
   }
 }
 
+function isPushToDefaultBranch(ctx: typeof github.context): boolean {
+  const defaultBranch = ctx.payload.repository?.default_branch;
+  return ctx.eventName === "push" && ctx.ref === `refs/heads/${defaultBranch}`;
+}
+
+/** Build the human-readable diff line for a PR comment. */
+function summary(result: RenderResult): string {
+  const { create, update, replace, delete: del } = result.counts;
+  const parts: string[] = [];
+  if (create) parts.push(`🟢 ${create} to create`);
+  if (update + replace) parts.push(`🟠 ${update + replace} to change`);
+  if (del) parts.push(`🔴 ${del} to destroy`);
+  return parts.length ? parts.join(" · ") : "No resource changes.";
+}
+
+/** Post or update a single sticky comment on the pull request. */
+async function commentOnPullRequest(token: string, result: RenderResult): Promise<void> {
+  const ctx = github.context;
+  const prNumber = ctx.payload.pull_request?.number;
+  if (!prNumber) {
+    core.warning("planar: no pull request number in context — skipping comment");
+    return;
+  }
+
+  const octokit = github.getOctokit(token);
+  const { owner, repo } = ctx.repo;
+  const body = `${MARKER}\n## Planar\n\n${summary(result)}\n`;
+
+  const { data: comments } = await octokit.rest.issues.listComments({
+    owner,
+    repo,
+    issue_number: prNumber,
+  });
+  const existing = comments.find((c) => c.body?.includes(MARKER));
+
+  if (existing) {
+    await octokit.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+    core.info(`planar: updated comment on PR #${prNumber}`);
+  } else {
+    await octokit.rest.issues.createComment({ owner, repo, issue_number: prNumber, body });
+    core.info(`planar: commented on PR #${prNumber}`);
+  }
+}
+
+/** Create or update the diagram on the default branch via the contents API; skip if unchanged. */
 async function commitFile(token: string, filePath: string, content: string, message: string): Promise<void> {
   const octokit = github.getOctokit(token);
   const { owner, repo } = github.context.repo;
@@ -55,12 +100,12 @@ async function commitFile(token: string, filePath: string, content: string, mess
       sha = existing.data.sha;
       const current = Buffer.from(existing.data.content, "base64").toString("utf8");
       if (current === content) {
-        core.info("planar: diagram unchanged - skipping commit");
+        core.info("planar: diagram unchanged — skipping commit");
         return;
       }
     }
   } catch {
-
+    // 404: the file doesn't exist yet, so we create it below.
   }
 
   await octokit.rest.repos.createOrUpdateFileContents({

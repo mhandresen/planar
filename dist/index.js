@@ -43519,10 +43519,21 @@ function esc(s) {
 
 
 async function planToSvg(plan, theme = "light") {
+    const all = parsePlan(plan);
     const refs = buildReferenceMap(plan);
-    const { nodes, badges } = demote(abstractNodes(parsePlan(plan)), refs);
+    const { nodes, badges } = demote(abstractNodes(all), refs);
     const tree = groupNodes(nodes, refs);
-    return { svg: renderSvg(await layout(tree), badges, theme), count: countResources(tree) };
+    return {
+        svg: renderSvg(await layout(tree), badges, theme),
+        count: countResources(tree),
+        counts: tally(all),
+    };
+}
+function tally(nodes) {
+    const counts = { create: 0, update: 0, replace: 0, delete: 0, noop: 0 };
+    for (const node of nodes)
+        counts[node.status] += 1;
+    return counts;
 }
 
 ;// CONCATENATED MODULE: ./src/action/index.ts
@@ -43531,37 +43542,83 @@ async function planToSvg(plan, theme = "light") {
 
 
 
+const MARKER = "<!-- planar-bot -->";
 async function run() {
     try {
         const planPath = getInput("plan", { required: true });
         const outputPath = getInput("output") || ".planar/diagram.svg";
         const theme = getInput("theme") === "dark" ? "dark" : "light";
-        const message = getInput("commit-message") || "chore: updated Planar diagram";
+        const message = getInput("commit-message") || "chore: update Planar diagram";
         const token = getInput("token") || process.env.GITHUB_TOKEN;
         const plan = JSON.parse(external_node_fs_namespaceObject.readFileSync(planPath, "utf8"));
-        const { svg, count } = await planToSvg(plan, theme);
-        info(`planar, rendered ${count} resource(s)`);
+        const result = await planToSvg(plan, theme);
+        info(`planar: rendered ${result.count} resource(s)`);
         external_node_fs_namespaceObject.mkdirSync(external_node_path_namespaceObject.dirname(outputPath), { recursive: true });
-        external_node_fs_namespaceObject.writeFileSync(outputPath, svg);
+        external_node_fs_namespaceObject.writeFileSync(outputPath, result.svg);
         setOutput("svg-path", outputPath);
-        setOutput("resource-count", String(count));
-        const ctx = github_context;
-        const defaultBranch = ctx.payload.repository?.default_branch;
-        const onDefaultBranch = ctx.eventName === "push" && ctx.ref === `refs/heads/${defaultBranch}`;
-        if (!onDefaultBranch) {
-            info("planar: not a push to the default branch - wrote the SVG, skipping commit");
-            return;
-        }
+        setOutput("resource-count", String(result.count));
         if (!token) {
-            warning("planar: no token available - cannot commit the diagram");
+            warning("planar: no token available — wrote the SVG, skipping repo updates");
             return;
         }
-        await commitFile(token, outputPath, svg, message);
+        const ctx = github_context;
+        if (ctx.eventName === "pull_request") {
+            await commentOnPullRequest(token, result);
+        }
+        else if (isPushToDefaultBranch(ctx)) {
+            await commitFile(token, outputPath, result.svg, message);
+        }
+        else {
+            info("planar: not a pull request or default-branch push — wrote the SVG, nothing else to do");
+        }
     }
     catch (err) {
         setFailed(err instanceof Error ? err.message : String(err));
     }
 }
+function isPushToDefaultBranch(ctx) {
+    const defaultBranch = ctx.payload.repository?.default_branch;
+    return ctx.eventName === "push" && ctx.ref === `refs/heads/${defaultBranch}`;
+}
+/** Build the human-readable diff line for a PR comment. */
+function action_summary(result) {
+    const { create, update, replace, delete: del } = result.counts;
+    const parts = [];
+    if (create)
+        parts.push(`🟢 ${create} to create`);
+    if (update + replace)
+        parts.push(`🟠 ${update + replace} to change`);
+    if (del)
+        parts.push(`🔴 ${del} to destroy`);
+    return parts.length ? parts.join(" · ") : "No resource changes.";
+}
+/** Post or update a single sticky comment on the pull request. */
+async function commentOnPullRequest(token, result) {
+    const ctx = github_context;
+    const prNumber = ctx.payload.pull_request?.number;
+    if (!prNumber) {
+        warning("planar: no pull request number in context — skipping comment");
+        return;
+    }
+    const octokit = getOctokit(token);
+    const { owner, repo } = ctx.repo;
+    const body = `${MARKER}\n## Planar\n\n${action_summary(result)}\n`;
+    const { data: comments } = await octokit.rest.issues.listComments({
+        owner,
+        repo,
+        issue_number: prNumber,
+    });
+    const existing = comments.find((c) => c.body?.includes(MARKER));
+    if (existing) {
+        await octokit.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+        info(`planar: updated comment on PR #${prNumber}`);
+    }
+    else {
+        await octokit.rest.issues.createComment({ owner, repo, issue_number: prNumber, body });
+        info(`planar: commented on PR #${prNumber}`);
+    }
+}
+/** Create or update the diagram on the default branch via the contents API; skip if unchanged. */
 async function commitFile(token, filePath, content, message) {
     const octokit = getOctokit(token);
     const { owner, repo } = github_context.repo;
@@ -43573,12 +43630,13 @@ async function commitFile(token, filePath, content, message) {
             sha = existing.data.sha;
             const current = Buffer.from(existing.data.content, "base64").toString("utf8");
             if (current === content) {
-                info("planar: diagram unchanged - skipping commit");
+                info("planar: diagram unchanged — skipping commit");
                 return;
             }
         }
     }
     catch {
+        // 404: the file doesn't exist yet, so we create it below.
     }
     await octokit.rest.repos.createOrUpdateFileContents({
         owner,
