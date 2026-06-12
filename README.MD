@@ -116,12 +116,32 @@ jobs:
 
 On a push to your default branch, Planar renders the diagram and commits it (only when it has changed). On other events it writes the SVG without committing — posting the diff to pull requests is on the roadmap.
 
+### Pull request comments
+
+To post the diagram as a comment on pull requests, add a `pull_request` trigger
+and the `pull-requests: write` permission:
+
+```yaml
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: write          # commit the diagram on merge to the default branch
+  pull-requests: write     # post the diagram comment on PRs
+```
+
+On a pull request, Planar renders the diagram, hosts it on a `planar-bot` branch,
+and posts (or updates) a single sticky comment with the diff. Public repositories
+only — pull requests from forks get a read-only token and are skipped.
+
 ## Roadmap
 
 - [x] **M1** — Parse `terraform show -json` into a typed IR; prune plumbing; normalize status (incl. replace).
 - [x] **M1.5** — Logical grouping: nest related resources into a container tree (e.g. instance → subnet → vpc) via plan references and per-provider heuristics.
 - [x] **M2** — ELK hierarchical layout + themed SVG (light/dark) with house-style iconography and per-category fallback; security-group demotion; diff styling with a legend.
-- [ ] **M3** — GitHub Action: post the diff on PRs, commit/update the SVG and README on merge.
+- [x] **M3** — GitHub Action: post the diff on PRs, commit/update the SVG on merge.
 
 ## Known limitations & TODO
 
