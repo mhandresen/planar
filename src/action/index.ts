@@ -132,12 +132,22 @@ async function ensureBranch(octokit: Octokit, owner: string, repo: string, branc
   }
   const base = github.context.payload.repository?.default_branch;
   const baseRef = await octokit.rest.git.getRef({ owner, repo, ref: `heads/${base}` });
-  await octokit.rest.git.createRef({ owner, repo, ref: `refs/heads/${branch}`, sha: baseRef.data.object.sha });
+  await octokit.rest.git.createRef({
+    owner,
+    repo,
+    ref: `refs/heads/${branch}`,
+    sha: baseRef.data.object.sha,
+  });
   core.info(`planar: created ${branch} branch for diagram hosting`);
 }
 
 /** Create or update the diagram on the default branch via the contents API; skip if unchanged. */
-async function commitFile(octokit: Octokit, filePath: string, content: string, message: string): Promise<void> {
+async function commitFile(
+  octokit: Octokit,
+  filePath: string,
+  content: string,
+  message: string,
+): Promise<void> {
   const { owner, repo } = github.context.repo;
   const branch = github.context.payload.repository?.default_branch;
 

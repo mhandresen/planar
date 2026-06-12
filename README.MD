@@ -25,12 +25,11 @@ Planar reads the resolved plan (`terraform show -json`), not raw HCL. That's the
 - **Pure transform.** Reads plan JSON; never runs Terraform or sees your credentials.
 - **Abstracts plumbing.** Drops no-ops and glue resources (IAM attachments, route-table associations, and similar) so the diagram shows architecture, not wiring.
 - **Groups logically.** Nests resources into containers using the plan's real references (subnet → VPC, instance → subnet), falling back to per-provider heuristics when a plan has no config block.
-- **Demotes security groups.** Folds security groups, NSGs, and firewalls into a shield badge on the resources they protect — conservatively, so a *changed* group is never silently dropped.
+- **Demotes security groups.** Folds security groups, NSGs, and firewalls into a shield badge on the resources they protect — conservatively, so a _changed_ group is never silently dropped.
 - **Reads as architecture.** House-style monoline glyphs per resource type; unmapped types degrade to a per-category glyph and color instead of a blank box, so real plans don't become a sea of gray squares.
 - **Provider-general.** Pipeline works across providers; AWS coverage is deepest, with Azure and GCP riding the shared category layer.
 - **Shows the diff.** Green create, orange update/replace, red delete, with a baked-in legend.
 - **Light and dark themes.**
-
 
 ## Quickstart
 
@@ -80,7 +79,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: write   # Planar commits the diagram back to the repo
+  contents: write # Planar commits the diagram back to the repo
 
 jobs:
   diagram:
@@ -106,13 +105,13 @@ jobs:
 
 ### Inputs
 
-| Input | Default | Description |
-|---|---|---|
-| `plan` | _(required)_ | Path to a `terraform show -json` plan document. |
-| `output` | `.planar/diagram.svg` | Where to write the SVG, relative to the repository root. |
-| `theme` | `light` | Diagram theme: `light` or `dark`. |
+| Input            | Default                        | Description                                                  |
+| ---------------- | ------------------------------ | ------------------------------------------------------------ |
+| `plan`           | _(required)_                   | Path to a `terraform show -json` plan document.              |
+| `output`         | `.planar/diagram.svg`          | Where to write the SVG, relative to the repository root.     |
+| `theme`          | `light`                        | Diagram theme: `light` or `dark`.                            |
 | `commit-message` | `chore: update Planar diagram` | Message used when the diagram changes on the default branch. |
-| `token` | `${{ github.token }}` | Token used to commit the diagram. |
+| `token`          | `${{ github.token }}`          | Token used to commit the diagram.                            |
 
 On a push to your default branch, Planar renders the diagram and commits it (only when it has changed). On other events it writes the SVG without committing — posting the diff to pull requests is on the roadmap.
 
@@ -128,8 +127,8 @@ on:
   pull_request:
 
 permissions:
-  contents: write          # commit the diagram on merge to the default branch
-  pull-requests: write     # post the diagram comment on PRs
+  contents: write # commit the diagram on merge to the default branch
+  pull-requests: write # post the diagram comment on PRs
 ```
 
 On a pull request, Planar renders the diagram, hosts it on a `planar-bot` branch,

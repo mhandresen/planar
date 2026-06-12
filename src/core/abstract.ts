@@ -23,10 +23,10 @@ export const NOISE_TYPES = new Set<string>([
 ]);
 
 /** Type prefixes that are almost always glue rather than infrastructure */
-export const NOISE_PREFIXES = ["random_", "tls_", "time_", "local_"]
+export const NOISE_PREFIXES = ["random_", "tls_", "time_", "local_"];
 
 function isNoise(type: string): boolean {
-  return NOISE_TYPES.has(type) || NOISE_PREFIXES.some((p => type.startsWith(p)));
+  return NOISE_TYPES.has(type) || NOISE_PREFIXES.some((p) => type.startsWith(p));
 }
 
 /**

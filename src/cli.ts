@@ -4,8 +4,6 @@ import { parsePlan, buildReferenceMap } from "./core/parse.js";
 import { abstractNodes } from "./core/abstract.js";
 import { demote } from "./core/demote.js";
 import { countResources, groupNodes, isContainer, type TreeNode } from "./core/group.js";
-import { layout } from "./core/layout.js";
-import { renderSvg } from "./core/render.js";
 import type { TerraformPlan } from "./core/plan.js";
 import { planToSvg } from "./core/pipeline.js";
 

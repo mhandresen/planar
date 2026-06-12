@@ -14,9 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: ./
         with:
-         plan: docs/examples/plan.json
-         output: .planar/diagram.svg
-         theme: dark
+          plan: docs/examples/plan.json
+          output: .planar/diagram.svg
+          theme: dark

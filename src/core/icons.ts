@@ -25,16 +25,13 @@ const FALLBACK = "<rect x='5' y='5' width='14' height='14' rx='3'/>";
 const CATEGORY_GLYPHS: Record<Category, string> = {
   compute:
     "<rect x='6' y='6' width='12' height='12' rx='1.5'/><path d='M9 3 V6 M15 3 V6 M9 18 V21 M15 18 V21 M3 9 H6 M3 15 H6 M18 9 H21 M18 15 H21'/>",
-  storage:
-    "<path d='M4 8 L12 4 L20 8 L12 12 Z'/><path d='M4 8 V16 L12 20 V12'/><path d='M20 8 V16 L12 20'/>",
+  storage: "<path d='M4 8 L12 4 L20 8 L12 12 Z'/><path d='M4 8 V16 L12 20 V12'/><path d='M20 8 V16 L12 20'/>",
   database:
     "<ellipse cx='12' cy='6' rx='7' ry='2.6'/><path d='M5 6 V18 C5 19.4 8.1 20.6 12 20.6 C15.9 20.6 19 19.4 19 18 V6'/><path d='M5 12 C5 13.4 8.1 14.6 12 14.6 C15.9 14.6 19 13.4 19 12'/>",
   network:
     "<circle cx='12' cy='5' r='2'/><circle cx='5' cy='18' r='2'/><circle cx='19' cy='18' r='2'/><path d='M12 7 V11 M12 13 L6 16 M12 13 L18 16'/>",
-  security:
-    "<rect x='5' y='11' width='14' height='9' rx='1.5'/><path d='M8 11 V8 A4 4 0 0 1 16 8 V11'/>",
-  integration:
-    "<rect x='4' y='7' width='16' height='10' rx='1.5'/><path d='M4 9 L12 13 L20 9'/>",
+  security: "<rect x='5' y='11' width='14' height='9' rx='1.5'/><path d='M8 11 V8 A4 4 0 0 1 16 8 V11'/>",
+  integration: "<rect x='4' y='7' width='16' height='10' rx='1.5'/><path d='M4 9 L12 13 L20 9'/>",
   other: FALLBACK,
 };
 

@@ -42966,9 +42966,7 @@ function toNode(rc) {
  * Data sources (mode === "data") are excluded — they describe lookups, not infra.
  */
 function parsePlan(plan) {
-    return (plan.resource_changes ?? [])
-        .filter((rc) => rc.mode === "managed")
-        .map(toNode);
+    return (plan.resource_changes ?? []).filter((rc) => rc.mode === "managed").map(toNode);
 }
 /**
  * Build an address -> referenced-addresses map from the plan's configuration block.
@@ -43028,7 +43026,7 @@ const NOISE_TYPES = new Set([
 /** Type prefixes that are almost always glue rather than infrastructure */
 const NOISE_PREFIXES = ["random_", "tls_", "time_", "local_"];
 function isNoise(type) {
-    return NOISE_TYPES.has(type) || NOISE_PREFIXES.some((p => type.startsWith(p)));
+    return NOISE_TYPES.has(type) || NOISE_PREFIXES.some((p) => type.startsWith(p));
 }
 /**
  * Drop no-op changes and plumbing resources, leaving only the nodes worth
@@ -43285,7 +43283,7 @@ function place(e, index) {
         width: e.width ?? 0,
         height: e.height ?? 0,
         node,
-        children: (e.children ?? []).map((c) => place(c, index))
+        children: (e.children ?? []).map((c) => place(c, index)),
     };
 }
 function indexTree(nodes) {
@@ -43307,12 +43305,116 @@ function indexTree(nodes) {
  * "instance"; security precedes network so "network_acl" isn't caught by "network".
  */
 const RULES = [
-    ["security", ["security_group", "iam", "kms", "secret", "firewall", "waf", "network_acl", "nacl", "acm", "certificate", "guardduty", "shield"]],
-    ["database", ["rds", "db_instance", "dynamodb", "elasticache", "redshift", "neptune", "docdb", "memorydb", "aurora", "sql_database", "cosmos", "bigtable", "spanner", "firestore", "_database"]],
-    ["storage", ["s3", "_bucket", "ebs", "efs", "fsx", "glacier", "blob", "managed_disk", "filestore", "storage"]],
-    ["integration", ["sqs", "sns", "eventbridge", "event_rule", "cloudwatch_event", "sfn", "step_function", "kinesis", "msk", "kafka", "pubsub", "servicebus", "eventgrid", "appsync", "api_gateway", "apigateway"]],
-    ["compute", ["instance", "lambda", "ecs", "eks", "fargate", "batch", "lightsail", "autoscaling", "launch_template", "function", "virtual_machine", "app_service", "cloud_run", "gke", "kubernetes", "container"]],
-    ["network", ["vpc", "subnet", "nat_gateway", "internet_gateway", "route", "vpn", "lb", "load_balancer", "elb", "alb", "nlb", "cloudfront", "route53", "dns", "network", "eip", "_address", "endpoint", "peering", "transit_gateway", "vnet", "cdn"]],
+    [
+        "security",
+        [
+            "security_group",
+            "iam",
+            "kms",
+            "secret",
+            "firewall",
+            "waf",
+            "network_acl",
+            "nacl",
+            "acm",
+            "certificate",
+            "guardduty",
+            "shield",
+        ],
+    ],
+    [
+        "database",
+        [
+            "rds",
+            "db_instance",
+            "dynamodb",
+            "elasticache",
+            "redshift",
+            "neptune",
+            "docdb",
+            "memorydb",
+            "aurora",
+            "sql_database",
+            "cosmos",
+            "bigtable",
+            "spanner",
+            "firestore",
+            "_database",
+        ],
+    ],
+    [
+        "storage",
+        ["s3", "_bucket", "ebs", "efs", "fsx", "glacier", "blob", "managed_disk", "filestore", "storage"],
+    ],
+    [
+        "integration",
+        [
+            "sqs",
+            "sns",
+            "eventbridge",
+            "event_rule",
+            "cloudwatch_event",
+            "sfn",
+            "step_function",
+            "kinesis",
+            "msk",
+            "kafka",
+            "pubsub",
+            "servicebus",
+            "eventgrid",
+            "appsync",
+            "api_gateway",
+            "apigateway",
+        ],
+    ],
+    [
+        "compute",
+        [
+            "instance",
+            "lambda",
+            "ecs",
+            "eks",
+            "fargate",
+            "batch",
+            "lightsail",
+            "autoscaling",
+            "launch_template",
+            "function",
+            "virtual_machine",
+            "app_service",
+            "cloud_run",
+            "gke",
+            "kubernetes",
+            "container",
+        ],
+    ],
+    [
+        "network",
+        [
+            "vpc",
+            "subnet",
+            "nat_gateway",
+            "internet_gateway",
+            "route",
+            "vpn",
+            "lb",
+            "load_balancer",
+            "elb",
+            "alb",
+            "nlb",
+            "cloudfront",
+            "route53",
+            "dns",
+            "network",
+            "eip",
+            "_address",
+            "endpoint",
+            "peering",
+            "transit_gateway",
+            "vnet",
+            "cdn",
+        ],
+    ],
 ];
 function categoryOf(type) {
     for (const [category, keywords] of RULES) {
@@ -43368,7 +43470,15 @@ const light = {
     shadow: "#0f172a",
     tintOpacity: "0.07",
     status: { create: "#16a34a", update: "#d97706", replace: "#d97706", delete: "#dc2626", noop: "#94a3b8" },
-    category: { network: "#0891b2", compute: "#7c3aed", storage: "#0d9488", database: "#4f46e5", security: "#475569", integration: "#db2777", other: "#94a3b8" },
+    category: {
+        network: "#0891b2",
+        compute: "#7c3aed",
+        storage: "#0d9488",
+        database: "#4f46e5",
+        security: "#475569",
+        integration: "#db2777",
+        other: "#94a3b8",
+    },
 };
 const dark = {
     canvas: "#0f1623",
@@ -43383,7 +43493,15 @@ const dark = {
     shadow: "#000000",
     tintOpacity: "0.16",
     status: { create: "#34d399", update: "#fbbf24", replace: "#fbbf24", delete: "#f87171", noop: "#64748b" },
-    category: { network: "#22d3ee", compute: "#a78bfa", storage: "#2dd4bf", database: "#818cf8", security: "#94a3b8", integration: "#f472b6", other: "#64748b" },
+    category: {
+        network: "#22d3ee",
+        compute: "#a78bfa",
+        storage: "#2dd4bf",
+        database: "#818cf8",
+        security: "#94a3b8",
+        integration: "#f472b6",
+        other: "#64748b",
+    },
 };
 const themes = { light, dark };
 
@@ -44266,7 +44384,12 @@ async function ensureBranch(octokit, owner, repo, branch) {
     }
     const base = github_context.payload.repository?.default_branch;
     const baseRef = await octokit.rest.git.getRef({ owner, repo, ref: `heads/${base}` });
-    await octokit.rest.git.createRef({ owner, repo, ref: `refs/heads/${branch}`, sha: baseRef.data.object.sha });
+    await octokit.rest.git.createRef({
+        owner,
+        repo,
+        ref: `refs/heads/${branch}`,
+        sha: baseRef.data.object.sha,
+    });
     info(`planar: created ${branch} branch for diagram hosting`);
 }
 /** Create or update the diagram on the default branch via the contents API; skip if unchanged. */

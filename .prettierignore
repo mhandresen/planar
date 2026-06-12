@@ -1,0 +1,9 @@
+dist/
+lib/
+coverage/
+proto/
+src/core/fonts/
+src/core/assets/
+test/fixtures/
+*.plan.json
+pnpm-lock.yaml

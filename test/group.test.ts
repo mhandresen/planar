@@ -3,13 +3,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parsePlan } from "../src/core/parse.js";
 import { abstractNodes } from "../src/core/abstract.js";
-import {
-  countResources,
-  groupNodes,
-  isContainer,
-  type Container,
-  type TreeNode,
-} from "../src/core/group.js";
+import { countResources, groupNodes, isContainer, type Container, type TreeNode } from "../src/core/group.js";
 import type { TerraformPlan } from "../src/core/plan.js";
 
 const fixture = JSON.parse(

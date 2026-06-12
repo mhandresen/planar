@@ -48,9 +48,7 @@ function toNode(rc: ResourceChange): ResourceNode {
  */
 
 export function parsePlan(plan: TerraformPlan): ResourceNode[] {
-  return (plan.resource_changes ?? [])
-    .filter((rc) => rc.mode === "managed")
-    .map(toNode);
+  return (plan.resource_changes ?? []).filter((rc) => rc.mode === "managed").map(toNode);
 }
 
 /**

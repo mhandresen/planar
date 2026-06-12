@@ -32,7 +32,15 @@ const light: Theme = {
   shadow: "#0f172a",
   tintOpacity: "0.07",
   status: { create: "#16a34a", update: "#d97706", replace: "#d97706", delete: "#dc2626", noop: "#94a3b8" },
-  category: { network: "#0891b2", compute: "#7c3aed", storage: "#0d9488", database: "#4f46e5", security: "#475569", integration: "#db2777", other: "#94a3b8" },
+  category: {
+    network: "#0891b2",
+    compute: "#7c3aed",
+    storage: "#0d9488",
+    database: "#4f46e5",
+    security: "#475569",
+    integration: "#db2777",
+    other: "#94a3b8",
+  },
 };
 
 const dark: Theme = {
@@ -48,7 +56,15 @@ const dark: Theme = {
   shadow: "#000000",
   tintOpacity: "0.16",
   status: { create: "#34d399", update: "#fbbf24", replace: "#fbbf24", delete: "#f87171", noop: "#64748b" },
-  category: { network: "#22d3ee", compute: "#a78bfa", storage: "#2dd4bf", database: "#818cf8", security: "#94a3b8", integration: "#f472b6", other: "#64748b" },
+  category: {
+    network: "#22d3ee",
+    compute: "#a78bfa",
+    storage: "#2dd4bf",
+    database: "#818cf8",
+    security: "#94a3b8",
+    integration: "#f472b6",
+    other: "#64748b",
+  },
 };
 
 export const themes: Record<ThemeName, Theme> = { light, dark };

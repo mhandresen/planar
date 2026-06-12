@@ -78,9 +78,8 @@ export function groupNodes(nodes: ResourceNode[], refs?: Map<string, string[]>):
     label: module,
     containerType: "module" as const,
     children: buildTopology(byModule.get(module) ?? [], refs),
-  }))
+  }));
 }
-
 
 // Containment never crosses a module boundary.
 function buildTopology(resources: ResourceNode[], refs?: Map<string, string[]>): TreeNode[] {
@@ -110,7 +109,7 @@ function toTree(node: ResourceNode, childrenOf: Map<string, ResourceNode[]>): Tr
     containerType: "resource",
     resource: node,
     children: kids.map((k) => toTree(k, childrenOf)),
-  }
+  };
 }
 
 /**

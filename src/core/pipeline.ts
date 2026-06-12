@@ -4,7 +4,7 @@ import { demote } from "./demote.js";
 import { groupNodes, countResources } from "./group.js";
 import { layout } from "./layout.js";
 import { renderSvg } from "./render.js";
-import type { TerraformPlan } from "./plan.js"
+import type { TerraformPlan } from "./plan.js";
 import type { ThemeName } from "./theme.js";
 
 export interface RenderResult {
@@ -23,7 +23,7 @@ export async function planToSvg(plan: TerraformPlan, theme: ThemeName = "light")
     svg: renderSvg(await layout(tree), badges, theme),
     count: countResources(tree),
     counts: tally(all),
-  }
+  };
 }
 
 function tally(nodes: ResourceNode[]): Record<Status, number> {

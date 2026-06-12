@@ -3,7 +3,7 @@ import { isContainer, type Container, type TreeNode } from "./group.js";
 
 // elkjs ship ESM-style typings for a CommonJS budnle, so NodeNext doesn't see the
 // default export as constructable. Pin the constructor type at the boundary.
-const elk: ELK = new (ElkConstructor as unknown as { new(): ELK })();
+const elk: ELK = new (ElkConstructor as unknown as { new (): ELK })();
 
 const LEAF_WIDTH = 212;
 const LEAF_HEIGHT = 66;
@@ -49,7 +49,7 @@ export async function layout(modules: Container[]): Promise<LayoutResult> {
     width: out.width ?? 0,
     height: out.height ?? 0,
     nodes: (out.children ?? []).map((c) => place(c, index)),
-  }
+  };
 }
 
 function toElk(node: TreeNode): ElkNode {
@@ -69,7 +69,7 @@ function place(e: ElkNode, index: Map<string, TreeNode>): PositionedNode {
     width: e.width ?? 0,
     height: e.height ?? 0,
     node,
-    children: (e.children ?? []).map((c) => place(c, index))
+    children: (e.children ?? []).map((c) => place(c, index)),
   };
 }
 
