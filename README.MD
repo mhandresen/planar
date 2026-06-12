@@ -14,7 +14,7 @@ Planar turns the output of `terraform plan` into clean, grouped, executive-ready
 
 **After** — the same plan, drawn by Planar:
 
-![Planar, dark mode](docs/examples/after.svg)
+![Planar, dark mode](docs/examples/after.png)
 
 ## Why plan JSON, not `.tf`
 
@@ -78,13 +78,8 @@ planar: 7 resource(s) across 2 group(s)
 
 ## Known limitations & TODO
 
-**Before launch**
-
-- **Before/after screenshot.** A side-by-side against `terraform graph` is the launch signal and still needs assembling — ideally rendered from a real cloud plan, not just the bundled fixtures, to confirm it holds up on messy input.
-
 **Post-launch**
 
-- **`aws_eip` placement.** The heuristic nests an Elastic IP inside a subnet, which is a guess; decide between pruning it as plumbing or showing a small "public" badge. Cosmetic.
 - **Multi-provider depth.** The pipeline is provider-general and verified on Azure, but coverage is AWS-first: bespoke glyphs are AWS-only (Azure/GCP fall back to per-category glyphs, so distinct network kinds can share a glyph), some keywords are missing (e.g. `azurerm_public_ip` lands in "other"), Azure resource-group containment isn't modeled, and GCP is seeded but untested. Add Azure/GCP fixtures and tests to lock it in.
 - **Layout polish.** Dead-space tuning in sparse diagrams, and legibility on very large plans (100+ resources).
 
