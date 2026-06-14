@@ -148,12 +148,14 @@ out of sync with `src/`.
 - [x] **M1.5** — Logical grouping: nest related resources into a container tree (e.g. instance → subnet → vpc) via plan references and per-provider heuristics.
 - [x] **M2** — ELK hierarchical layout + themed SVG (light/dark) with house-style iconography and per-category fallback; security-group demotion; diff styling with a legend.
 - [x] **M3** — GitHub Action: post the diff on PRs, commit/update the SVG on merge.
+- [ ] **M4** — Module-aware references: walk `configuration` recursively through `module_calls` so cross-module references resolve. Restores nesting and security-group demotion on modular plans (most real-world Terraform).
 
 ## Known limitations & TODO
 
 **Post-launch**
 
-- **Multi-provider depth.** The pipeline is provider-general and verified on Azure, but coverage is AWS-first: bespoke glyphs are AWS-only (Azure/GCP fall back to per-category glyphs, so distinct network kinds can share a glyph), some keywords are missing (e.g. `azurerm_public_ip` lands in "other"), Azure resource-group containment isn't modeled, and GCP is seeded but untested. Add Azure/GCP fixtures and tests to lock it in.
+- **Module-aware grouping.** Reference resolution currently reads the root module only, so on modular plans resources group by module and cross-module containment is lost (e.g. a subnet renders separately from the vnet it belongs to in another module), and security-group demotion falls back to a node instead of a badge. The output is legible but flatter than a single-module plan. Fixed by M4.
+- **Multi-provider depth.** The pipeline is provider-general and runs on Azure, but coverage is AWS-first: bespoke glyphs are AWS-only (Azure/GCP fall back to per-category glyphs, so distinct network kinds can share a glyph), some keywords are missing (e.g. `azurerm_public_ip` lands in "other"), Azure resource-group containment isn't modeled, and GCP is seeded but untested. Add Azure/GCP fixtures and tests to lock it in.
 - **Layout polish.** Dead-space tuning in sparse diagrams, and legibility on very large plans (100+ resources).
 
 ## License
