@@ -47,6 +47,7 @@
     "@actions/core": "^3.0.1",
     "@actions/github": "^9.1.1",
     "@resvg/resvg-wasm": "^2.6.2",
-    "elkjs": "^0.11.1"
+    "elkjs": "^0.11.1",
+    "typecheck": "^0.1.2"
   }
 }
