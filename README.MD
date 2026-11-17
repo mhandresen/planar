@@ -1,10 +1,12 @@
 # Planar
 
+[![Release](https://img.shields.io/github/v/release/mhandresen/planar)](https://github.com/mhandresen/planar/releases) [![CI](https://img.shields.io/github/actions/workflow/status/mhandresen/planar/ci.yml?branch=main&label=CI)](https://github.com/mhandresen/planar/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 **Living architecture diagrams from your Terraform plans — beautiful infra diffs, straight into your PRs.**
 
 Planar turns the output of `terraform plan` into clean, grouped, executive-ready architecture diagrams. It abstracts away plumbing (IAM attachments, route associations, glue resources), groups what's left into logical containers, and shows you the diff: green for created, red for destroyed, orange for changed.
 
-> Status: pre-release. The engine is complete — parsing, logical grouping, ELK layout, and themed SVG rendering (light/dark) all work end to end. The GitHub Action (M3) is next.
+> Status: v1 released. Works as a GitHub Action and as a CLI. Next up: module-aware grouping (M4) for multi-module plans.
 
 ## See it
 
@@ -15,58 +17,6 @@ Planar turns the output of `terraform plan` into clean, grouped, executive-ready
 **After** — the same plan, drawn by Planar:
 
 ![Planar, dark mode](docs/examples/after.png)
-
-## Why plan JSON, not `.tf`
-
-Planar reads the resolved plan (`terraform show -json`), not raw HCL. That's the only way to get an accurate diff and to see resources fully expanded through `count`, `for_each`, and modules. The engine is a pure transform — it never runs Terraform or touches your credentials. Your CI pipeline produces the plan; Planar draws it.
-
-## What it does
-
-- **Pure transform.** Reads plan JSON; never runs Terraform or sees your credentials.
-- **Abstracts plumbing.** Drops no-ops and glue resources (IAM attachments, route-table associations, and similar) so the diagram shows architecture, not wiring.
-- **Groups logically.** Nests resources into containers using the plan's real references (subnet → VPC, instance → subnet), falling back to per-provider heuristics when a plan has no config block.
-- **Demotes security groups.** Folds security groups, NSGs, and firewalls into a shield badge on the resources they protect — conservatively, so a _changed_ group is never silently dropped.
-- **Reads as architecture.** House-style monoline glyphs per resource type; unmapped types degrade to a per-category glyph and color instead of a blank box, so real plans don't become a sea of gray squares.
-- **Provider-general.** Pipeline works across providers; AWS coverage is deepest, with Azure and GCP riding the shared category layer.
-- **Shows the diff.** Green create, orange update/replace, red delete, with a baked-in legend.
-- **Light and dark themes.**
-
-## Quickstart
-
-```bash
-pnpm install
-
-# Produce a plan document from any Terraform project:
-#   terraform plan -out tfplan.bin
-#   terraform show -json tfplan.bin > plan.json
-
-# Render an SVG (the richer fixture has a configuration block,
-# so it exercises reference-based grouping and SG demotion):
-pnpm cli test/fixtures/aws-3tier.plan.json diagram.svg
-pnpm cli test/fixtures/aws-3tier.plan.json diagram.dark.svg --dark
-
-# Omit the output path to print the grouped hierarchy instead:
-pnpm cli test/fixtures/aws-basic.plan.json
-
-pnpm test
-```
-
-With no output path, the CLI prints the grouped hierarchy that the layout step consumes:
-
-```
-planar: 7 resource(s) across 2 group(s)
-
-[root]
-  + create  aws_vpc.main  (aws)
-    + create  aws_subnet.public  (aws)
-      + create  aws_instance.web  (aws)
-    ~ update  aws_security_group.web  (aws)
-    ± replace aws_db_instance.main  (aws)
-  - delete  aws_s3_bucket.legacy  (aws)
-
-[module.networking]
-  + create  aws_nat_gateway.main  (aws)
-```
 
 ## Use it as a GitHub Action
 
@@ -113,7 +63,7 @@ jobs:
 | `commit-message` | `chore: update Planar diagram` | Message used when the diagram changes on the default branch. |
 | `token`          | `${{ github.token }}`          | Token used to commit the diagram.                            |
 
-On a push to your default branch, Planar renders the diagram and commits it (only when it has changed). On other events it writes the SVG without committing — posting the diff to pull requests is on the roadmap.
+On a push to your default branch, Planar renders the diagram and commits it (only when it has changed). On other events it writes the SVG without committing; pull-request comments are covered below.
 
 ### Pull request comments
 
@@ -141,6 +91,58 @@ GitHub Actions run the bundled file directly with no install step, so the
 compiled Action (`dist/index.js` plus its wasm and font assets) is committed
 on purpose. It's regenerated with `pnpm run bundle`, and CI fails if it drifts
 out of sync with `src/`.
+
+## Why plan JSON, not `.tf`
+
+Planar reads the resolved plan (`terraform show -json`), not raw HCL. That's the only way to get an accurate diff and to see resources fully expanded through `count`, `for_each`, and modules. The engine is a pure transform — it never runs Terraform or touches your credentials. Your CI pipeline produces the plan; Planar draws it.
+
+## What it does
+
+- **Pure transform.** Reads plan JSON; never runs Terraform or sees your credentials.
+- **Abstracts plumbing.** Drops no-ops and glue resources (IAM attachments, route-table associations, and similar) so the diagram shows architecture, not wiring.
+- **Groups logically.** Nests resources into containers using the plan's real references (subnet → VPC, instance → subnet), falling back to per-provider heuristics when a plan has no config block.
+- **Demotes security groups.** Folds security groups, NSGs, and firewalls into a shield badge on the resources they protect — conservatively, so a _changed_ group is never silently dropped.
+- **Reads as architecture.** House-style monoline glyphs per resource type; unmapped types degrade to a per-category glyph and color instead of a blank box, so real plans don't become a sea of gray squares.
+- **Provider-general.** Pipeline works across providers; AWS coverage is deepest, with Azure and GCP riding the shared category layer.
+- **Shows the diff.** Green create, orange update/replace, red delete, with a baked-in legend.
+- **Light and dark themes.**
+
+## Local development / CLI
+
+```bash
+pnpm install
+
+# Produce a plan document from any Terraform project:
+#   terraform plan -out tfplan.bin
+#   terraform show -json tfplan.bin > plan.json
+
+# Render an SVG (the richer fixture has a configuration block,
+# so it exercises reference-based grouping and SG demotion):
+pnpm cli test/fixtures/aws-3tier.plan.json diagram.svg
+pnpm cli test/fixtures/aws-3tier.plan.json diagram.dark.svg --dark
+
+# Omit the output path to print the grouped hierarchy instead:
+pnpm cli test/fixtures/aws-basic.plan.json
+
+pnpm test
+```
+
+With no output path, the CLI prints the grouped hierarchy that the layout step consumes:
+
+```
+planar: 7 resource(s) across 2 group(s)
+
+[root]
+  + create  aws_vpc.main  (aws)
+    + create  aws_subnet.public  (aws)
+      + create  aws_instance.web  (aws)
+    ~ update  aws_security_group.web  (aws)
+    ± replace aws_db_instance.main  (aws)
+  - delete  aws_s3_bucket.legacy  (aws)
+
+[module.networking]
+  + create  aws_nat_gateway.main  (aws)
+```
 
 ## Roadmap
 
